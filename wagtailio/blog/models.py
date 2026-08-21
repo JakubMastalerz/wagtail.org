@@ -4,7 +4,9 @@ from django.shortcuts import render
 from django.utils.functional import cached_property
 
 from modelcluster.fields import ParentalKey
+from rest_framework import serializers
 from wagtail.admin.panels import FieldPanel, InlinePanel
+from wagtail.api import APIField
 from wagtail.fields import StreamField
 from wagtail.models import Orderable, Page
 from wagtail.search import index
@@ -149,6 +151,31 @@ class BlogPageAuthor(Orderable):
     ]
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["id", "title", "short_title", "icon"]
+
+    def to_internal_value(self, data):
+        if isinstance(data, int):
+            try:
+                return Category.objects.get(pk=data)
+            except Category.DoesNotExist:
+                raise serializers.ValidationError(f"Category {data} does not exist.")
+        return super().to_internal_value(data)
+
+
+class BlogPageAuthorSerializer(serializers.ModelSerializer):
+    author = serializers.PrimaryKeyRelatedField(queryset=Author.objects.all())
+    name = serializers.CharField(source="author.name", read_only=True)
+    job_title = serializers.CharField(source="author.job_title", read_only=True)
+    url = serializers.URLField(source="author.url", allow_blank=True, read_only=True)
+
+    class Meta:
+        model = BlogPageAuthor
+        fields = ["author", "name", "job_title", "url"]
+
+
 class BlogPage(Page, SocialMediaMixin, CrossPageMixin):
     template = "patterns/pages/blog/blog_page.html"
     subpage_types = []
@@ -170,6 +197,16 @@ class BlogPage(Page, SocialMediaMixin, CrossPageMixin):
         related_name="+",
     )
     body = StreamField(BlogStoryBlock())
+
+    api_fields = [
+        APIField("date", writable=True),
+        APIField("introduction", writable=True),
+        APIField("canonical_url", writable=True),
+        APIField("main_image", writable=True),
+        APIField("category", serializer=CategorySerializer(), writable=True),
+        APIField("body", writable=True),
+        APIField("authors", serializer=BlogPageAuthorSerializer(many=True), writable=True),
+    ]
 
     @property
     def siblings(self):

@@ -9,6 +9,7 @@ from django.views.generic import RedirectView
 
 from wagtail import urls as wagtail_urls
 from wagtail.admin import urls as wagtailadmin_urls
+from wagtail.api.v3.urls import api as wagtail_api_v3
 from wagtail.contrib.sitemaps.views import sitemap
 from wagtail.documents import urls as wagtaildocs_urls
 from wagtail.models import Page
@@ -30,6 +31,7 @@ from wagtailio.wagtailspace.views import WagtailSpace2025View
 
 # Private URLs are not meant to be cached.
 private_urlpatterns = [
+    path("api/v3/", wagtail_api_v3.urls),
     path("django-admin/", admin.site.urls),
     path("cms/", RedirectView.as_view(url="/admin/")),
     path("admin/", include(wagtailadmin_urls)),

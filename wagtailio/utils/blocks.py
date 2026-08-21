@@ -17,6 +17,8 @@ from wagtail.images import get_image_model
 from wagtail.images.blocks import ImageBlock
 from wagtail.snippets.blocks import SnippetChooserBlock
 
+import nh3
+
 from markdown import markdown
 from pygments import highlight
 from pygments.formatters import get_formatter_by_name
@@ -143,7 +145,31 @@ class MarkDownBlock(TextBlock):
         md = markdown(
             value, extensions=["markdown.extensions.fenced_code", "codehilite"]
         )
-        return mark_safe(md)  # noqa: S308
+        return mark_safe(  # noqa: S308
+            nh3.clean(
+                md,
+                tags={
+                    "p", "br",
+                    "h1", "h2", "h3", "h4", "h5", "h6",
+                    "pre", "code",
+                    "em", "strong", "s", "del",
+                    "a", "img",
+                    "ul", "ol", "li",
+                    "blockquote", "hr",
+                    "table", "thead", "tbody", "tr", "th", "td",
+                    "div", "span",
+                },
+                attributes={
+                    "a": {"href", "title"},
+                    "img": {"src", "alt", "title"},
+                    "code": {"class"},
+                    "div": {"class"},
+                    "span": {"class"},
+                    "td": {"align"},
+                    "th": {"align"},
+                },
+            )
+        )
 
     def get_context(self, value, parent_context=None):
         context = super().get_context(value, parent_context=parent_context)
